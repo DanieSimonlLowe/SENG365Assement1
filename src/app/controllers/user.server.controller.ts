@@ -1,6 +1,6 @@
 import {Request, Response} from "express";
 import Logger from "../../config/logger";
-import validator from "./validator";
+import validator from "../middleware/validator";
 import * as schemas from "../resources/schemas.json";
 import * as user from "../models/user.server.model";
 import * as auth from "../middleware/user.auth.middleware"
