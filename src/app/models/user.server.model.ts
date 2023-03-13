@@ -92,12 +92,30 @@ const get = async (user: number, token: string) : Promise<any> => {
 
 }
 
-const hasSamePassword = async (password: string, token: string) : Promise<boolean> => {
-    const query = 'SELECT password FROM user WHERE auth_token = ?';
+
+const isUser = async (user: number, token: string) : Promise<boolean> => {
+    const query = 'SELECT auth_token FROM user WHERE id = ?';
     const conn = await getPool().getConnection();
-    const [result] = await conn.query( query, [token]);
+    const [result] = await conn.query( query, [user]);
     await conn.release();
     if (result.length === 0) {
+        return false;
+    }
+    if (result[0].auth_token === null) {
+        return false;
+    }
+    return token === result[0].auth_token;
+}
+
+const rightPassword = async (user: number, password: string) : Promise<boolean> => {
+    const query = 'SELECT password FROM user WHERE id = ?';
+    const conn = await getPool().getConnection();
+    const [result] = await conn.query( query, [user]);
+    await conn.release();
+    if (result.length === 0) {
+        return false;
+    }
+    if (result[0].password === null) {
         return false;
     }
     return auth.checkPassword(password,result[0].password);
@@ -156,4 +174,4 @@ const update = async (req: Request) : Promise<number> => {
 
 
 
-export {make, login,logout,userExists,get,update,hasSamePassword,emailInUse}
+export {make, login,logout,userExists,get,update,isUser,emailInUse,rightPassword}

@@ -41,6 +41,7 @@ const login = async (req: Request, res: Response): Promise<void> => {
         res.status(400).send();
         return;
     }
+
     try{
         const result = await user.login(req.body.email, req.body.password);
 
@@ -113,6 +114,14 @@ const update = async (req: Request, res: Response): Promise<void> => {
         return;
     }
 
+    const id = parseInt(req.params.id,10);
+    const token = auth.getAuthToken(req);
+    if (token === "") {
+        res.statusMessage = "Unauthorized or Invalid currentPassword"
+        res.status(401).send();
+        return;
+    }
+
     if (req.body.hasOwnProperty("password")) {
         if (!req.body.hasOwnProperty("currentPassword")) {
             res.statusMessage = "Forbidden. This is not your account, or the email is already in use, or identical current and new passwords";
@@ -125,11 +134,28 @@ const update = async (req: Request, res: Response): Promise<void> => {
             return;
         }
     }
+
+
     try{
-        if (!await user.hasSamePassword(req.body.currentPassword,auth.getAuthToken(req))) {
-            res.statusMessage = "Unauthorized or Invalid currentPassword"
-            res.status(401).send();
+        if (req.body.hasOwnProperty("currentPassword")) {
+            if (!await user.rightPassword(id, req.body.currentPassword)) {
+                res.statusMessage = "Unauthorized or Invalid currentPassword"
+                res.status(401).send();
+                return;
+            }
+        }
+
+        if (!await user.isUser(id,token)) {
+            res.statusMessage = "Forbidden. This is not your account, or the email is already in use, or identical current and new passwords";
+            res.status(403).send();
             return;
+        }
+        if (req.body.hasOwnProperty("email")) {
+            if (await user.emailInUse(req.body.email)) {
+                res.statusMessage = "Forbidden. This is not your account, or the email is already in use, or identical current and new passwords";
+                res.status(403).send();
+                return;
+            }
         }
 
         const result = await user.update(req);
