@@ -3,6 +3,7 @@ import Logger from "../../config/logger";
 import * as user from "../models/user.image.server.model";
 import {getAuthToken} from "../middleware/user.auth.middleware";
 
+
 const getImage = async (req: Request, res: Response): Promise<void> => {
     const id = parseInt(req.params.id,10);
     try{
@@ -12,8 +13,18 @@ const getImage = async (req: Request, res: Response): Promise<void> => {
             res.status(404).send();
             return;
         }
-        res.statusMessage = "Not Implemented Yet!";
-        res.status(200).send(result);
+
+        res.statusMessage = "OK";
+        const extension = result.ext;
+        if (extension === 'jpeg' || extension === '.jpg') {
+            res.header("content-type", "image/jpeg");
+        } else if (extension === '.png') {
+            res.header("content-type", "image/png");
+        } else {
+            res.header("content-type", "image/gif");
+        }
+
+        res.status(200).send(result.data);
         return;
     } catch (err) {
         Logger.error(err);
@@ -29,8 +40,8 @@ const setImage = async (req: Request, res: Response): Promise<void> => {
         res.statusMessage = "Bad Request. Invalid image supplied (possibly incorrect file type)"
         res.status(400).send();
         return;
-    } else if (req.body.hasOwnProperty('Content-Type')) {
-        const type: string = req.body['Content-Type'];
+    } else if (req.headers.hasOwnProperty('content-type')) {
+        const type: string = req.headers['content-type'];
         if (type !== 'image/png' && type !== 'image/jpeg' && type !== 'image/gif') {
             res.statusMessage = "Bad Request. Invalid image supplied (possibly incorrect file type)"
             res.status(400).send();
@@ -43,6 +54,8 @@ const setImage = async (req: Request, res: Response): Promise<void> => {
     }
     // TODO deal with wrong body formats.
 
+
+
     const id = parseInt(req.params.id,10);
     const token = getAuthToken(req);
     if (token === "") {
@@ -51,8 +64,14 @@ const setImage = async (req: Request, res: Response): Promise<void> => {
         return;
     }
     try{
+        const data = req.body as Buffer;
+        if (data === null) {
+            res.statusMessage = "Bad Request. Invalid image supplied (possibly incorrect file type)"
+            res.status(400).send();
+            return;
+        }
         // Your code goes here
-        const result: number = await user.set(id,token,req.body,req.body['Content-Type']);
+        const result: number = await user.set(id,token,data,req.headers['content-type']);
         if (result === 404) {
             res.statusMessage = "Not found. No such user with ID given"
             res.status(404).send();
@@ -74,7 +93,7 @@ const setImage = async (req: Request, res: Response): Promise<void> => {
         }
     } catch (err) {
         Logger.error(err);
-        res.statusMessage = "Internal Server Error: " + err;
+        res.statusMessage = "Internal Server Error: ";
         res.status(500).send();
         return;
     }
