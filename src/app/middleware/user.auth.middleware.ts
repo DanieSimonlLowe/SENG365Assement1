@@ -1,5 +1,6 @@
 import * as hasher from "bcrypt";
 import {Request} from "express";
+import {getPool} from "../../config/db";
 
 const rounds: number = 8;
 async function generateToken(email: string, password: string): Promise<string> {
@@ -26,5 +27,16 @@ function getAuthToken(req: Request) : string {
     }
 }
 
+const getUserId = async (token: string) : Promise<number> => {
+    const query = 'SELECT id FROM user WHERE auth_token = ?';
+    const conn = await getPool().getConnection();
+    const [result] = await conn.query( query, [token]);
+    await conn.release();
+    if (result.length < 1) {
+        return null;
+    }
+    return result[0].id;
+}
 
-export {generatePasswordHash,generateToken,checkPassword,checkToken,getAuthToken};
+
+export {generatePasswordHash,generateToken,checkPassword,checkToken,getAuthToken,getUserId};

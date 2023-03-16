@@ -1,13 +1,6 @@
 import {getPool} from "../../config/db";
-import * as fs from "fs";
-import * as path from "path";
+import * as files from "../middleware/ImageFileManipulation"
 
-const imageDirectory = './storage/images/';
-const defaultPhotoDirectory = './storage/default/';
-
-function getImagePath (file:string) : string {
-    return path.dirname(imageDirectory)+'\\images\\'+file
-}
 
 const get = async (user: number) : Promise<any> => {
     const query = 'SELECT image_filename FROM user WHERE id = ?';
@@ -25,9 +18,8 @@ const get = async (user: number) : Promise<any> => {
     if (extension !== '.png' && extension !== 'jpeg' && extension !== '.jpg' && extension !== '.gif') {
         return null;
     }
-    const d = fs.readFileSync(getImagePath(pathStr));
     return {
-        data: d,
+        data: await files.readFile(pathStr),
         ext:extension
     };
 };
@@ -44,7 +36,7 @@ const set = async (user: number, token: string, img: Buffer, type: string) : Pro
     }
 
     if (result[0].image_filename !== null) {
-        fs.createWriteStream(getImagePath(result[0].image_filename)).write(img);
+        await files.writeFile(result[0].image_filename,img);
         return 200;
     } else {
         let file = 'user_' + user + '.';
@@ -55,7 +47,7 @@ const set = async (user: number, token: string, img: Buffer, type: string) : Pro
         } else {
             file += 'png';
         }
-        fs.createWriteStream(getImagePath(file)).write(img);
+        await files.writeFile(file, img);
 
         const query2 = 'UPDATE user Set image_filename = ? WHERE id = ?';
         const conn2 = await getPool().getConnection();
@@ -83,7 +75,7 @@ const remove = async (user: number, token: string) : Promise<number> => {
     const conn2 = await getPool().getConnection();
     await conn.query( query2, [user]);
     await conn2.release();
-    await fs.promises.unlink(getImagePath(result[0].image_filename));
+    await files.deleteFile(result[0].image_filename);
     return 200;
 }
 
