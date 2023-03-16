@@ -1,4 +1,5 @@
 import {getPool} from "../../config/db";
+import * as files from "../middleware/ImageFileManipulation"
 
 const validAgeRatings = ['G','PG','M','R16','R18','TBC'];
 
@@ -247,7 +248,7 @@ const update = async (body: any, dirId: number, id: number) : Promise<number> =>
     query += 'WHERE id = ?'
     values.push(id);
     const conn3 = await getPool().getConnection();
-    const [result] = await conn3.query( query, values);
+    await conn3.query( query, values);
     await conn3.release();
     return 200;
 }
@@ -268,4 +269,18 @@ const getGenres =  async () : Promise<any[]> => {
     return list;
 }
 
-export {search, getOne, add, update, getGenres}
+const remove = async (film: number, uid: number) : Promise<number> => {
+    const conn = await getPool().getConnection();
+    const [result] = await conn.query( 'SELECT director_id, image_filename FROM user WHERE id = ?', [film]);
+    await conn.release();
+    if (result.length < 1) {
+        return 404;
+    }
+    if (result[0].director_id !== uid) {
+        return 403;
+    }
+    await files.deleteFile(result[0].image_filename);
+    return 200;
+}
+
+export {search, getOne, add, update, getGenres, remove}

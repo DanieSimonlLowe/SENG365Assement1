@@ -35,26 +35,32 @@ const set = async (user: number, token: string, img: Buffer, type: string) : Pro
         return 403;
     }
 
+    let ret: number = 201;
     if (result[0].image_filename !== null) {
-        await files.writeFile(result[0].image_filename,img);
-        return 200;
-    } else {
-        let file = 'user_' + user + '.';
-        if (type === 'image/gif') {
-            file += 'gif';
-        } else if (type === 'image/jpeg') {
-            file += 'jpeg';
+        if (files.sameExtension(type,result[0].image_filename)) {
+            await files.writeFile(result[0].image_filename, img);
+            return 200;
         } else {
-            file += 'png';
+            await files.deleteFile(result[0].image_filename);
+            ret = 200;
         }
-        await files.writeFile(file, img);
-
-        const query2 = 'UPDATE user Set image_filename = ? WHERE id = ?';
-        const conn2 = await getPool().getConnection();
-        await conn2.query( query2, [file,user]);
-        await conn2.release();
-        return 201;
     }
+    let file = 'user_' + user + '.';
+    if (type === 'image/gif') {
+        file += 'gif';
+    } else if (type === 'image/jpeg') {
+        file += 'jpeg';
+    } else {
+        file += 'png';
+    }
+    await files.writeFile(file, img);
+
+    const query2 = 'UPDATE user Set image_filename = ? WHERE id = ?';
+    const conn2 = await getPool().getConnection();
+    await conn2.query( query2, [file,user]);
+    await conn2.release();
+    return ret;
+
 }
 
 const remove = async (user: number, token: string) : Promise<number> => {

@@ -132,11 +132,27 @@ const editOne = async (req: Request, res: Response): Promise<void> => {
 }
 
 const deleteOne = async (req: Request, res: Response): Promise<void> => {
-    try{
-        // Your code goes here
-        res.statusMessage = "Not Implemented Yet!";
-        res.status(501).send();
+    const id: number = parseInt(req.params.id,10);
+    const token = auth.getAuthToken(req);
+    if (token === "") {
+        res.statusMessage = "Unauthorized";
+        res.status(401).send();
         return;
+    }
+    try{
+        const result : number = await films.remove(id,await auth.getUserId(token));
+        if (result === 403) {
+            res.statusMessage = "Forbidden. Only the director of an film can delete it";
+            res.status(403).send();
+        } else if (result === 404) {
+            res.statusMessage = "Not Found. No film found with id";
+            res.status(404).send();
+        } else if (result === 200) {
+            res.statusMessage = "OK";
+            res.status(200).send();
+        } else {
+            throw new Error("values of " + result);
+        }
     } catch (err) {
         Logger.error(err);
         res.statusMessage = "Internal Server Error";

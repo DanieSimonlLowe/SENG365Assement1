@@ -2,7 +2,7 @@ import {Request, Response} from "express";
 import Logger from "../../config/logger";
 import * as user from "../models/user.image.server.model";
 import {getAuthToken} from "../middleware/user.auth.middleware";
-
+import * as files from "../middleware/ImageFileManipulation"
 
 const getImage = async (req: Request, res: Response): Promise<void> => {
     const id = parseInt(req.params.id,10);
@@ -40,19 +40,12 @@ const setImage = async (req: Request, res: Response): Promise<void> => {
         res.statusMessage = "Bad Request. Invalid image supplied (possibly incorrect file type)"
         res.status(400).send();
         return;
-    } else if (req.headers.hasOwnProperty('content-type')) {
-        const type: string = req.headers['content-type'];
-        if (type !== 'image/png' && type !== 'image/jpeg' && type !== 'image/gif') {
-            res.statusMessage = "Bad Request. Invalid image supplied (possibly incorrect file type)"
-            res.status(400).send();
-            return;
-        }
-    } else {
+    } else if (!files.isValidImageReq(req)) {
         res.statusMessage = "Bad Request. Invalid image supplied (possibly incorrect file type)"
         res.status(400).send();
         return;
     }
-    // TODO deal with wrong body formats.
+
 
 
 
@@ -65,11 +58,6 @@ const setImage = async (req: Request, res: Response): Promise<void> => {
     }
     try{
         const data = req.body as Buffer;
-        if (data === null) {
-            res.statusMessage = "Bad Request. Invalid image supplied (possibly incorrect file type)"
-            res.status(400).send();
-            return;
-        }
         // Your code goes here
         const result: number = await user.set(id,token,data,req.headers['content-type']);
         if (result === 404) {
