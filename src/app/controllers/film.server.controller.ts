@@ -91,13 +91,18 @@ const editOne = async (req: Request, res: Response): Promise<void> => {
         return;
     }
     const id = parseInt(req.params.id,10);
-
+    const token = auth.getAuthToken(req);
+    if (token === "") {
+        res.statusMessage = "Unauthorized";
+        res.status(401).send();
+        return;
+    }
 
     try{
-        const dirId = await auth.getUserId(auth.getAuthToken(req));
+        const dirId = await auth.getUserId(token);
         if (dirId === null) {
-            res.statusMessage = "Unauthorized";
-            res.status(401).send();
+            res.statusMessage = "Forbidden. Only the director of an film may change it, cannot change the releaseDate since it has already passed, cannot edit a film that has a review placed, or cannot release a film in the past";
+            res.status(403).send();
             return;
         }
 
