@@ -22,7 +22,7 @@ const set = async (film: number, user: number, img: Buffer, type: string): Promi
     if (result.length === 0) {
         return 404;
     }
-    if (user === result[0].director_id) {
+    if (user !== result[0].director_id) {
         return 403;
     }
 
@@ -41,8 +41,10 @@ const set = async (film: number, user: number, img: Buffer, type: string): Promi
         file += 'gif';
     } else if (type === 'image/jpeg') {
         file += 'jpeg';
-    } else {
+    } else if (type === 'image/png') {
         file += 'png';
+    } else {
+        return 400;
     }
     await files.writeFile(file, img);
 

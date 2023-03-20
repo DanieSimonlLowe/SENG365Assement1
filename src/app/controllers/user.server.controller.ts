@@ -4,7 +4,6 @@ import validator from "../middleware/validator";
 import * as schemas from "../resources/schemas.json";
 import * as user from "../models/user.server.model";
 import * as auth from "../middleware/user.auth.middleware"
-import {getAuthToken} from "../middleware/user.auth.middleware";
 
 const register = async (req: Request, res: Response): Promise<void> => {
     const isValid = await validator(schemas.user_register,req.body);
@@ -70,7 +69,7 @@ const logout = async (req: Request, res: Response): Promise<void> => {
     }
     try{
         // Your code goes here
-        await user.logout(getAuthToken(req));
+        await user.logout(token);
         res.statusMessage = "OK";
         res.status(200).send();
         return;
@@ -160,13 +159,17 @@ const update = async (req: Request, res: Response): Promise<void> => {
 
         const result = await user.update(req);
 
-        if (result === 0) {
+        if (result === 403) {
             res.statusMessage = "Forbidden. This is not your account, or the email is already in use, or identical current and new passwords";
             res.status(403).send();
             return;
-        } else if (result === 1) {
+        } else if (result === 404) {
             res.statusMessage = "Not Found"
             res.status(404).send();
+            return;
+        } else if (result === 400) {
+            res.statusMessage = "Bad request. Invalid information";
+            res.status(400).send();
             return;
         }
         // Your code goes here

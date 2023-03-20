@@ -18,7 +18,7 @@ const writeFile = async (fileName: string, data: Buffer) : Promise<void> => {
 }
 
 const deleteFile = async (fileName: string) : Promise<void> => {
-    await fs.promises.unlink(fileName);
+    await fs.promises.unlink(getImagePath(fileName));
 }
 
 function isValidImageReq(req: Request): boolean { // TODO deal with wrong body data formats.
@@ -27,7 +27,7 @@ function isValidImageReq(req: Request): boolean { // TODO deal with wrong body d
         if (type !== 'image/png' && type !== 'image/jpeg' && type !== 'image/gif') {
             return false;
         }
-    } else {
+    } else if (!(req.is('image/png') || req.is('image/jpeg') || req.is('image/gif'))) {
         return false;
     }
     try {
@@ -35,9 +35,23 @@ function isValidImageReq(req: Request): boolean { // TODO deal with wrong body d
         if (data === null) {
             return false;
         }
-    } catch ( err) {
+    } catch (err) {
         return false;
     }
+    return true;
+}
+
+function getImageContentType(req: Request) : string {
+    if (req.headers.hasOwnProperty('content-type')) {
+        return req.headers['content-type'];
+    } else if (req.is('image/png') ) {
+        return "image/png";
+    } else if (req.is('image/jpeg')) {
+        return "image/jpeg";
+    } else if (req.is('image/gif')) {
+        return "image/gif";
+    }
+    return null;
 }
 
 function sameExtension(type: string, fileName: string): boolean {
@@ -53,4 +67,4 @@ function sameExtension(type: string, fileName: string): boolean {
 }
 
 
-export {readFile,writeFile,deleteFile,isValidImageReq,sameExtension}
+export {readFile,writeFile,deleteFile,isValidImageReq,sameExtension,getImageContentType}

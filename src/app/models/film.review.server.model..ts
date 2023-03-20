@@ -1,5 +1,4 @@
 import {getPool} from "../../config/db";
-
 const get = async (film: number): Promise<any> => {
     const query = 'SELECT * FROM film WHERE id = ?';
     const conn = await getPool().getConnection();
@@ -9,7 +8,7 @@ const get = async (film: number): Promise<any> => {
         return null;
     }
 
-    const query2 = 'SELECT * FROM film_review JOIN user ON user_id = user.id WHERE film_id = ? ORDER BY DESC timestamp';
+    const query2 = 'SELECT * FROM film_review JOIN user ON user_id = user.id WHERE film_id = ? ORDER BY film_review.timestamp DESC';
     const conn2 = await getPool().getConnection();
     const [result] = await conn.query( query2, [film]);
     await conn2.release();
@@ -40,6 +39,10 @@ const add = async (film: number, user: number, rating: number, review: string): 
     const now: Date = new Date();
     if (test[0].director_id === user || test[0].release_date > now) {
         return 403;
+    }
+
+    if (rating < 0 || rating > 10) {
+        return 400;
     }
 
     const query2 = 'INSERT INTO film_review (film_id,user_id,rating,review) \n VALUES (?,?,?,?)';

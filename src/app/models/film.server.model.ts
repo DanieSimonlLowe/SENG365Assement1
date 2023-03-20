@@ -1,43 +1,106 @@
 import {getPool} from "../../config/db";
 import * as files from "../middleware/ImageFileManipulation"
+import * as types from "../middleware/typeValidation"
 
 const validAgeRatings = ['G','PG','M','R16','R18','TBC'];
 
-const search = async (params: any) : Promise<any> => {
-    let query = 'SELECT id, title, genre_id, age_rating, director_id, release_date FROM film AS f ';
-    if (params.hasOwnProperty("q")) {
-        query += 'title LIKE \'%' + params.q + '%\' AND ';
+function isInvalidAgeRating(rating:string): boolean {
+    for (let i = 0; i<validAgeRatings.length; i++) {
+        if (rating === validAgeRatings[i]) {
+            return false;
+        }
     }
+    return true;
+}
+
+const isGenre = async (id: number) : Promise<boolean> => {
+    const query = 'SELECT * FROM genre WHERE id  = ?'
+    const conn = await getPool().getConnection();
+    const [result] = await conn.query(query, [id]);
+    await conn.release();
+    return result.length > 0;
+}
+
+const isUser = async (user: number) : Promise<boolean> => {
+    const query = 'SELECT auth_token FROM user WHERE id = ?';
+    const conn = await getPool().getConnection();
+    const [result] = await conn.query( query, [user]);
+    await conn.release();
+    return (result.length !== 0)
+}
+
+const search = async (params: any) : Promise<any> => {
+    let query = 'SELECT id, title, genre_id, age_rating, director_id, release_date, description FROM film AS f ';
+
     let where: string = "";
+
+    if (params.hasOwnProperty("q")) {
+        const q : string = params.q;
+        if (!types.isString(q)) {
+            return 400;
+        }
+        where += '(title LIKE \'%' + q + '%\' OR description LIKE \'%' + q + '%\') AND ';
+    }
     if (params.hasOwnProperty("genreIds")) {
+        if (!Array.isArray(params.genreIds)) {
+            params.genreIds = [params.genreIds]
+        }
         if (params.genreIds.length > 0) {
             where += '('
             // tslint:disable-next-line:prefer-for-of
             for (let i = 0; i < params.genreIds.length; i++) {
+                if (!types.isInt(params.genreIds[i])) {
+                    return 400;
+                }
+                if (!await isGenre(params.genreIds[i])) {
+                    return 400;
+                }
                 where += 'genre_id = ' + params.genreIds[i] + ' OR '
             }
             where = where.substring(0,where.length-3) + ') AND '
         }
     }
     if (params.hasOwnProperty("ageRatings")) {
+        if (!Array.isArray(params.ageRatings)) {
+            params.ageRatings = [params.ageRatings];
+        }
         if (params.ageRatings.length > 0) {
             where += '('
             // tslint:disable-next-line:prefer-for-of
             for (let i = 0; i < params.ageRatings.length; i++) {
-                query += 'age_ratings = ' + params.ageRatings[i] + ' OR '
+                const ageRating = params.ageRatings[i];
+                if (!types.isString(ageRating)) {
+                    return 400;
+                }
+                if (isInvalidAgeRating(ageRating)) {
+                    return 400;
+                }
+                where += 'age_rating = \'' + ageRating + '\' OR '
             }
             where = where.substring(0,where.length-3) + ') AND '
         }
     }
     if (params.hasOwnProperty("directorId")) {
-        where += 'title = '+ params.directorId +' AND ';
+        if (!types.isInt(params.directorId)) {
+            return 400;
+        }
+        if (! await isUser(params.directorId)) {
+            return 400;
+        }
+        where += 'director_id = '+ params.directorId +' AND ';
     }
     if (params.hasOwnProperty("reviewerId")) {
+        if (!types.isInt(params.reviewerId)) {
+            return 400;
+        }
+        if (! await isUser(params.reviewerId)) {
+            return 400;
+        }
         where += 'id IN (SELECT film_id FROM `film_review` WHERE user_id = ' + params.reviewerId + ') AND ';
     }
     if (where !== "") {
         where = where.substring(0,where.length-4);
-        query =query + "WHERE " + where;
+        query = query + "WHERE " + where;
     }
 
     let sortKey = "RELEASED_ASC";
@@ -52,25 +115,41 @@ const search = async (params: any) : Promise<any> => {
         query += 'ORDER BY release_date ASC'
     } else if (sortKey === 'RELEASED_DESC') {
         query += 'ORDER BY release_date DESC'
-    } else if (sortKey === 'RATING_ASC') {// TODO check this treats no reviews as 0.
-        query += 'ORDER BY (SELECT AVG(rating) FROM film_review WHERE f.id = film_id) ASC'
+    } else if (sortKey === 'RATING_ASC') {
+        query += 'ORDER BY (SELECT CASE WHEN AVG(rating) IS NULL THEN 0 ELSE AVG(rating) END FROM film_review WHERE f.id = film_id) ASC'
     } else if (sortKey === 'RATING_DESC') {
-        query += 'ORDER BY (SELECT AVG(rating) FROM film_review WHERE f.id = film_id) DESC'
+        query += 'ORDER BY (SELECT CASE WHEN AVG(rating) IS NULL THEN 0 ELSE AVG(rating) END FROM film_review WHERE f.id = film_id) DESC'
+    } else {
+        return 400;
     }
+
+    query += ', f.id ASC'
 
     const conn = await getPool().getConnection();
     const [result] = await conn.query( query, []);
 
     let startIndex = 0;
     if (params.hasOwnProperty("startIndex")) {
-        startIndex = params.startIndex;
+        if (types.isInt(params.startIndex)) {
+            return 400;
+        }
+        startIndex = parseFloat(params.startIndex);
+        if (startIndex <  0) {
+            return 400;
+        }
     }
 
     let count = result.length - startIndex;
     if (params.hasOwnProperty("count")) {
-        count = params.count;
-        if (count + startIndex >= result.length) {
-            count = result.length - startIndex - 1;
+        count = parseFloat(params.count);
+        if (!Number.isInteger(count)) {
+            return 400;
+        }
+        if (count < 0) {
+            return 400;
+        }
+        if (count + startIndex > result.length) {
+            return 400;
         }
     }
     const list = [];
@@ -79,9 +158,12 @@ const search = async (params: any) : Promise<any> => {
     for (let i = startIndex; i < startIndex+count; i++) {
         const [dirInfo] = await conn.query('SELECT first_name, last_name FROM user WHERE id = ?', [result[i].director_id]);
         const [ratingInfo] = await conn.query('SELECT AVG(rating) AS rat FROM film_review WHERE film_id = ?', [result[i].id]);
-        let ratin = 0;
+        let ratin: number = 0;
         if (ratingInfo.length !== 0) {
-            ratin = ratingInfo[0].rat.toFixed(1);
+            if (ratingInfo[0].rat !== null) {
+                const rat: number = parseFloat(ratingInfo[0].rat);
+                ratin = Math.round(rat * 100) / 100
+            }
         }
         list.push({
             filmId: result[i].id,
@@ -98,12 +180,12 @@ const search = async (params: any) : Promise<any> => {
 
     await conn.release();
 
-    const temp = count;
     return {
         films: list,
-        count: temp
+        count: result.length
     }
 }
+
 
 
 const getOne = async (film: number) : Promise<any> => {
@@ -113,19 +195,27 @@ const getOne = async (film: number) : Promise<any> => {
     await conn.release();
     if (result.length < 1) {
         return 404;
+    } else if (result[0].title === null) {
+        return 404;
+    }
+    let ratin: number = 0;
+    if (result[0].avg_rating !== null) {
+        const rat: number = parseFloat(result[0].avg_rating);
+        ratin = Math.round(rat * 100) / 100
     }
     return {
         filmId: film,
         title: result[0].title,
+        description: result[0].description,
         genreId: result[0].genre_id,
-        ageRating: result[0].age_rating,
         directorId: result[0].director_id,
         directorFirstName: result[0].first_name,
         directorLastName: result[0].last_name,
-        rating: result[0].avg_rating,
-        description: result[0].description,
+        releaseDate: result[0].release_date,
+        ageRating: result[0].age_rating,
         runtime: result[0].runtime,
-        numRating: result[0].count_rating
+        rating: ratin,
+        numReviews: result[0].count_rating
     }
 }
 
@@ -133,40 +223,52 @@ const add = async (body: any, dirId: number) : Promise<any> => {
     const title : string = body.title;
 
     const conn = await getPool().getConnection();
-    const [test] = await conn.query( 'SELECT * FROM user WHERE title = ?', [title]);
+    const [test] = await conn.query( 'SELECT * FROM film WHERE title = ?', [title]);
     await conn.release();
     if (test.length > 0) {
         return 403;
     }
 
-    const description : string = body.description;
-    const genreId : number = body.genreId;
-
-    const conn3 = await getPool().getConnection();
-    const [test2] = await conn3.query( 'SELECT * FROM genre WHERE id = ?', [genreId]);
-    await conn3.release();
-    if (test2.length < 1) {
+    if (!types.isString(body.description)) {
         return 400;
     }
+    const description : string = body.description;
+    if (!types.isInt(body.genreId)) {
+        return 400;
+    }
+    const genreId : number = body.genreId;
 
+    if (!await isGenre(genreId)) {
+        return 400;
+    }
     const now: Date = new Date();
     let releaseDate: Date = now;
     if (body.hasOwnProperty('releaseDate')) {
-        releaseDate = new Date(body.releaseDate+'Z');
+        releaseDate = types.parseDate(body.releaseDate);
+        if (!types.isDate(releaseDate)) {
+            return 400;
+        }
         if (releaseDate < now) {
-            releaseDate = now;
+            return 403;
         }
     }
 
     let ageRating: string = 'TBC';
     if (body.hasOwnProperty('ageRating')) {
-        if (body.ageRating in validAgeRatings) {
-            ageRating = body.ageRating;
+        if (!types.isString(body.ageRating)) {
+            return 400;
         }
+        if (isInvalidAgeRating(body.ageRating)) {
+            return 400;
+        }
+        ageRating = body.ageRating;
     }
 
     let runtime = null;
     if (body.hasOwnProperty('runtime')) {
+        if (!types.isInt(body.runtime)) {
+            return 400;
+        }
         runtime = body.runtime;
     }
 
@@ -174,31 +276,30 @@ const add = async (body: any, dirId: number) : Promise<any> => {
     const conn2 = await getPool().getConnection();
     const [result] = await conn.query(query, [title,description,genreId,releaseDate,ageRating,runtime,dirId]);
     await conn2.release();
-    if (result.length < 0) {
-        return null;
-    }
-    return {
-        filmId:result[0].id
-    }
+
+    const val = result.insertId;
+
+    return {filmId:val}
 }
 
 const update = async (body: any, dirId: number, id: number) : Promise<number> => {
     const conn = await getPool().getConnection();
     const [test] = await conn.query( 'SELECT * FROM film WHERE id = ?', [id]);
     await conn.release();
-    if (test.length > 0) {
+    if (test.length < 1) {
         return 404;
     } else if (test[0].director_id !== dirId) {
         return 403;
     }
 
     const conn2 = await getPool().getConnection();
-    const [test2] = await conn2.query( 'SELECT * FROM film_view WHERE film_id = ?', [id]);
+    const [test2] = await conn2.query( 'SELECT * FROM film_review WHERE film_id = ?', [id]);
     await conn2.release();
     if (test2.length > 0) {
         return 403;
     }
 
+    let setsValue:boolean = false;
     let query = 'UPDATE film SET '
     const values = [];
     if (body.hasOwnProperty('releaseDate')) {
@@ -207,43 +308,67 @@ const update = async (body: any, dirId: number, id: number) : Promise<number> =>
             return 403;
         }
 
-        const releaseDate = new Date(body.releaseDate+'Z');
+        const releaseDate = types.parseDate(body.releaseDate);
+        if (!types.isDate(releaseDate)) {
+            return 400;
+        }
         if (releaseDate < now) {
             return 403;
         }
-        query += 'release_date = ? ';
+        query += 'release_date = ? ,';
         values.push(releaseDate);
+        setsValue = true;
     }
 
     if (body.hasOwnProperty('genreId')) {
-        const conn4 = await getPool().getConnection();
-        const [test3] = await conn4.query( 'SELECT * FROM genre WHERE id = ?', [body.genreId]);
-        await conn4.release();
-        if (test3.length < 1) {
+        if (!types.isInt(body.genreId)) {
             return 400;
         }
-        query += 'genre_id = ? ';
+        if (!await isGenre(body.genreId)) {
+            return 400;
+        }
+        query += 'genre_id = ? ,';
         values.push(body.genreId);
+        setsValue = true;
     }
 
     if (body.hasOwnProperty('title')) {
-        query += 'title = ? ';
-        values.push(body.tilte);
+        if (!types.isString(body.title)) {
+            return 400;
+        }
+        query += 'title = ? ,';
+        values.push(body.title);
+        setsValue = true;
     }
     if (body.hasOwnProperty('description')) {
-        query += 'description = ? ';
+        if (!types.isString(body.description)) {
+            return 400;
+        }
+        query += 'description = ? ,';
         values.push(body.description);
+        setsValue = true;
     }
     if (body.hasOwnProperty('runtime')) {
-        query += 'runtime = ? ';
+        if (!types.isInt(body.runtime)) {
+            return 400;
+        }
+        query += 'runtime = ? ,';
         values.push(body.runtime);
+        setsValue = true;
     }
     if (body.hasOwnProperty('ageRating')) {
-        query += 'age_rating = ? ';
-        if (!(body.ageRating in validAgeRatings)) {
+        query += 'age_rating = ? ,';
+        if (!types.isString(body.ageRating)) {
+            return 400;
+        }
+        if (isInvalidAgeRating(body.ageRating)) {
             return 400;
         }
         values.push(body.ageRating);
+        setsValue = true;
+    }
+    if (setsValue) {
+        query = query.substring(0,query.length-1);
     }
     query += 'WHERE id = ?'
     values.push(id);
@@ -260,10 +385,13 @@ const getGenres =  async () : Promise<any[]> => {
     await conn.release();
 
     const list = [];
-    for (let i = 0; i<result.length; i++) {
+    for (const item of result) {
+        const id = item.id;
+        const nam = item.name
+
         list.push({
-            genreId:result.id,
-            name:result.name
+            genreId:id,
+            name:nam
         })
     }
     return list;
@@ -279,7 +407,9 @@ const remove = async (film: number, uid: number) : Promise<number> => {
     if (result[0].director_id !== uid) {
         return 403;
     }
-    await files.deleteFile(result[0].image_filename);
+    if (result[0].image_filename !== null) {
+        await files.deleteFile(result[0].image_filename);
+    }
     return 200;
 }
 

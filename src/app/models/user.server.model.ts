@@ -1,6 +1,7 @@
 import Logger from "../../config/logger";
 import {Request} from "express";
 import { getPool } from '../../config/db';
+import * as types from "../middleware/typeValidation"
 
 import * as auth from "../middleware/user.auth.middleware"
 
@@ -76,18 +77,16 @@ const get = async (user: number, token: string) : Promise<any> => {
     const [result] = await conn.query( query, [user]);
     await conn.release();
     if (result[0].auth_token === token) {
-        const out = {
+        return {
             email: result[0].email,
             firstName: result[0].first_name,
             lastName: result[0].last_name
         };
-        return out;
     } else {
-        const out = {
+        return {
             firstName: result[0].first_name,
             lastName: result[0].last_name
         };
-        return out;
     }
 
 }
@@ -106,6 +105,7 @@ const isUser = async (user: number, token: string) : Promise<boolean> => {
     }
     return token === result[0].auth_token;
 }
+
 
 const rightPassword = async (user: number, password: string) : Promise<boolean> => {
     const query = 'SELECT password FROM user WHERE id = ?';
@@ -136,26 +136,38 @@ const update = async (req: Request) : Promise<number> => {
     const [result] = await conn.query( query, [id]);
     await conn.release();
     if (result.length === 0) {
-        return 1;
+        return 404;
     } else if (result[0].auth_token !== auth.getAuthToken(req)) {
-        return 0;
+        return 403;
     } else {
         let query2 = 'UPDATE user SET ';
         const values = [];
 
         if (req.body.hasOwnProperty("email")) {
+            if (!types.isString(req.body.email)) {
+                return 400;
+            }
             query2 += 'email = ?,'
             values.push(req.body.email);
         }
         if (req.body.hasOwnProperty("fisrtName")) {
+            if (!types.isString(req.body.fisrtName)) {
+                return 400;
+            }
             query2 += 'fist_name = ?,'
             values.push(req.body.fisrtName)
         }
         if (req.body.hasOwnProperty("lastName")) {
+            if (!types.isString(req.body.lastName)) {
+                return 400;
+            }
             query2 += 'last_name = ?,'
             values.push(req.body.lastName)
         }
         if (req.body.hasOwnProperty("password")) {
+            if (!types.isString(req.body.password)) {
+                return 400;
+            }
             query2 += 'password = ?,'
             const password = await auth.generatePasswordHash(req.body.password);
             values.push(password);
@@ -167,7 +179,7 @@ const update = async (req: Request) : Promise<number> => {
         await conn2.query(query2,values);
         await conn2.release();
 
-        return 2;
+        return 200;
     }
 }
 

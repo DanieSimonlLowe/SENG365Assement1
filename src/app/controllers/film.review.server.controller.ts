@@ -11,12 +11,12 @@ const getReviews = async (req: Request, res: Response): Promise<void> => {
         const result = await reviews.get(id);
         // Your code goes here
         if (result === null) {
-            res.statusMessage = "OK";
+            res.statusMessage = "Not Found. No film found with id";
             res.status(404).send();
             return;
         } else {
-            res.statusMessage = "Not Found. No film found with id";
-            res.status(200).send();
+            res.statusMessage = "OK";
+            res.status(200).send(result);
             return;
         }
 
@@ -46,8 +46,8 @@ const addReview = async (req: Request, res: Response): Promise<void> => {
     try{
         const uId = await auth.getUserId(auth.getAuthToken(req));
         if (uId === null) {
-            res.statusMessage = "Forbidden. Cannot review your own film, or cannot post a review on a film that has not yet released";
-            res.status(403).send();
+            res.statusMessage = "Unauthorized";
+            res.status(401).send();
             return;
         }
         const result: number = await reviews.add(id,uId,req.body.rating,req.body.review);
@@ -59,9 +59,13 @@ const addReview = async (req: Request, res: Response): Promise<void> => {
             res.statusMessage = "Not Found. No film found with id";
             res.status(501).send();
             return;
+        } else if (result === 400) {
+            res.statusMessage = "Bad Request. Invalid information!";
+            res.status(400).send();
+            return;
         } else if (result === 201) {
-            res.statusMessage = "Forbidden. Cannot review your own film, or cannot post a review on a film that has not yet released";
-            res.status(501).send();
+            res.statusMessage = "Created";
+            res.status(201).send();
             return;
         } else {
             throw new Error();

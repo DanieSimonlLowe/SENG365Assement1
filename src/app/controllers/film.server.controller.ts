@@ -6,7 +6,7 @@ import * as films from "../models/film.server.model"
 import * as auth from "../middleware/user.auth.middleware";
 
 const viewAll = async (req: Request, res: Response): Promise<void> => {
-    const isValid = await validator(schemas.film_search,req.params);
+    const isValid = await validator(schemas.film_search,req.query);
     if (isValid !== true) {
         res.statusMessage = "Bad Request. Invalid information!";
         res.status(400).send();
@@ -14,7 +14,13 @@ const viewAll = async (req: Request, res: Response): Promise<void> => {
     }
     try{
         // Your code goes here
-        const result = await films.search(req.params);
+        const result = await films.search(req.query);
+        if (result === 400) {
+            res.statusMessage = "Bad Request. Invalid information!";
+            res.status(400).send();
+            return;
+        }
+
         res.statusMessage = "OK";
         res.status(200).send(result);
         return;
@@ -101,8 +107,8 @@ const editOne = async (req: Request, res: Response): Promise<void> => {
     try{
         const dirId = await auth.getUserId(token);
         if (dirId === null) {
-            res.statusMessage = "Forbidden. Only the director of an film may change it, cannot change the releaseDate since it has already passed, cannot edit a film that has a review placed, or cannot release a film in the past";
-            res.status(403).send();
+            res.statusMessage = "Unauthorized";
+            res.status(401).send();
             return;
         }
 
@@ -168,7 +174,7 @@ const deleteOne = async (req: Request, res: Response): Promise<void> => {
 
 const getGenres = async (req: Request, res: Response): Promise<void> => {
     try{
-        const result = films.getGenres();
+        const result: any[] = await films.getGenres();
         res.statusMessage = "OK";
         res.status(200).send(result);
         return;

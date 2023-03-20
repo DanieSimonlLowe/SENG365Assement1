@@ -46,9 +46,6 @@ const setImage = async (req: Request, res: Response): Promise<void> => {
         return;
     }
 
-
-
-
     const id = parseInt(req.params.id,10);
     const token = getAuthToken(req);
     if (token === "") {
@@ -59,7 +56,7 @@ const setImage = async (req: Request, res: Response): Promise<void> => {
     try{
         const data = req.body as Buffer;
         // Your code goes here
-        const result: number = await user.set(id,token,data,req.headers['content-type']);
+        const result: number = await user.set(id,token,data,files.getImageContentType(req));
         if (result === 404) {
             res.statusMessage = "Not found. No such user with ID given"
             res.status(404).send();
