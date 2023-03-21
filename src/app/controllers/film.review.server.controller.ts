@@ -4,8 +4,14 @@ import * as reviews from "../models/film.review.server.model."
 import * as auth from "../middleware/user.auth.middleware";
 import validator from "../middleware/validator";
 import * as schemas from "../resources/schemas.json";
+import * as types from "../middleware/typeValidation";
 
 const getReviews = async (req: Request, res: Response): Promise<void> => {
+    if (!types.isInt(req.params.id)) {
+        res.statusMessage = "Bad Request. Invalid information!";
+        res.status(400).send();
+        return;
+    }
     const id: number = parseInt(req.params.id,10);
     try{
         const result = await reviews.get(id);

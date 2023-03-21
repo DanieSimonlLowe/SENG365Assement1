@@ -3,8 +3,14 @@ import Logger from "../../config/logger";
 import * as films from "../models/film.image.server.model"
 import * as auth from "../middleware/user.auth.middleware";
 import * as files from "../middleware/ImageFileManipulation"
+import * as types from "../middleware/typeValidation";
 
 const getImage = async (req: Request, res: Response): Promise<void> => {
+    if (!types.isInt(req.params.id)) {
+        res.statusMessage = "Bad Request. Invalid information!";
+        res.status(400).send();
+        return;
+    }
     const id: number = parseInt(req.params.id,10);
     try{
         const result = await films.get(id);
@@ -26,6 +32,11 @@ const getImage = async (req: Request, res: Response): Promise<void> => {
 }
 
 const setImage = async (req: Request, res: Response): Promise<void> => {
+    if (!types.isInt(req.params.id)) {
+        res.statusMessage = "Bad Request. Invalid information!";
+        res.status(400).send();
+        return;
+    }
     const id: number = parseInt(req.params.id,10);
     const token = auth.getAuthToken(req);
     if (token === "") {

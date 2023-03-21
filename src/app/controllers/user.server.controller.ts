@@ -4,6 +4,7 @@ import validator from "../middleware/validator";
 import * as schemas from "../resources/schemas.json";
 import * as user from "../models/user.server.model";
 import * as auth from "../middleware/user.auth.middleware"
+import * as types from "../middleware/typeValidation"
 
 const register = async (req: Request, res: Response): Promise<void> => {
     const isValid = await validator(schemas.user_register,req.body);
@@ -22,7 +23,7 @@ const register = async (req: Request, res: Response): Promise<void> => {
 
         const result = await user.make(req);
 
-        res.statusMessage = "OK"
+        res.statusMessage = "Created"
         res.status(201).send(result);
         return;
     } catch (err) {
@@ -82,6 +83,11 @@ const logout = async (req: Request, res: Response): Promise<void> => {
 }
 
 const view = async (req: Request, res: Response): Promise<void> => {
+    if (!types.isInt(req.params.id)) {
+        res.statusMessage = "Bad Request. Invalid information!";
+        res.status(400).send();
+        return;
+    }
     const id = parseInt(req.params.id,10);
 
     try{
@@ -113,6 +119,11 @@ const update = async (req: Request, res: Response): Promise<void> => {
         return;
     }
 
+    if (!types.isInt(req.params.id)) {
+        res.statusMessage = "Bad Request. Invalid information!";
+        res.status(400).send();
+        return;
+    }
     const id = parseInt(req.params.id,10);
     const token = auth.getAuthToken(req);
     if (token === "") {

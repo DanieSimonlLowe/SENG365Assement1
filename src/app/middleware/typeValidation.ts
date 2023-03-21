@@ -17,13 +17,7 @@ function isString(value: any): boolean {
 }
 
 function parseDate(input: string) : Date {
-    const output = [];
-    for (let i = 0; i<input.length; i++) {
-        output[i] = input[i];
-    }
-    output[input.length] = 'Z'
-
-    return new Date(Date.parse(output.join('')));
+    return new Date(input);
 }
 
 function isDate(value: Date): boolean {

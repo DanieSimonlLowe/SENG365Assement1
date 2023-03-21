@@ -399,7 +399,7 @@ const getGenres =  async () : Promise<any[]> => {
 
 const remove = async (film: number, uid: number) : Promise<number> => {
     const conn = await getPool().getConnection();
-    const [result] = await conn.query( 'SELECT director_id, image_filename FROM user WHERE id = ?', [film]);
+    const [result] = await conn.query( 'SELECT director_id, image_filename FROM film WHERE id = ?', [film]);
     await conn.release();
     if (result.length < 1) {
         return 404;
@@ -410,6 +410,9 @@ const remove = async (film: number, uid: number) : Promise<number> => {
     if (result[0].image_filename !== null) {
         await files.deleteFile(result[0].image_filename);
     }
+    const conn2 = await getPool().getConnection();
+    await conn2.query( 'DELETE FROM film WHERE id = ?', [film]);
+    await conn2.release();
     return 200;
 }
 

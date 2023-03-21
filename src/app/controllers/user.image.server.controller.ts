@@ -3,8 +3,14 @@ import Logger from "../../config/logger";
 import * as user from "../models/user.image.server.model";
 import {getAuthToken} from "../middleware/user.auth.middleware";
 import * as files from "../middleware/ImageFileManipulation"
+import * as types from "../middleware/typeValidation";
 
 const getImage = async (req: Request, res: Response): Promise<void> => {
+    if (!types.isInt(req.params.id)) {
+        res.statusMessage = "Bad Request. Invalid information!";
+        res.status(400).send();
+        return;
+    }
     const id = parseInt(req.params.id,10);
     try{
         const result = await user.get(id);
@@ -46,6 +52,11 @@ const setImage = async (req: Request, res: Response): Promise<void> => {
         return;
     }
 
+    if (!types.isInt(req.params.id)) {
+        res.statusMessage = "Bad Request. Invalid information!";
+        res.status(400).send();
+        return;
+    }
     const id = parseInt(req.params.id,10);
     const token = getAuthToken(req);
     if (token === "") {
@@ -86,6 +97,11 @@ const setImage = async (req: Request, res: Response): Promise<void> => {
 
 
 const deleteImage = async (req: Request, res: Response): Promise<void> => {
+    if (!types.isInt(req.params.id)) {
+        res.statusMessage = "Bad Request. Invalid information!";
+        res.status(400).send();
+        return;
+    }
     const id = parseInt(req.params.id,10);
     const token = getAuthToken(req);
     if (token === "") {

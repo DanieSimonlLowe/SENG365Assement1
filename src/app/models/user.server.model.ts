@@ -130,6 +130,9 @@ const emailInUse = async (email: string) : Promise<boolean> => {
 }
 
 const update = async (req: Request) : Promise<number> => {
+    if (!types.isInt(req.params.id)) {
+        return 400;
+    }
     const id = parseInt(req.params.id,10);
     const query = 'SELECT auth_token FROM user WHERE id = ?';
     const conn = await getPool().getConnection();

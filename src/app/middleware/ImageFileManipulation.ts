@@ -2,7 +2,7 @@ import path from "path";
 
 import * as fs from "fs";
 import {Request} from "express";
-const imageDirectory = './storage/images/';
+const imageDirectory = './storage/default/';
 
 function getImagePath (file:string) : string {
     return path.dirname(imageDirectory)+'\\images\\'+file

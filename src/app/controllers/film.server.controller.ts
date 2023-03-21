@@ -4,6 +4,7 @@ import validator from "../middleware/validator";
 import * as schemas from "../resources/schemas.json";
 import * as films from "../models/film.server.model"
 import * as auth from "../middleware/user.auth.middleware";
+import * as types from "../middleware/typeValidation";
 
 const viewAll = async (req: Request, res: Response): Promise<void> => {
     const isValid = await validator(schemas.film_search,req.query);
@@ -34,6 +35,11 @@ const viewAll = async (req: Request, res: Response): Promise<void> => {
 
 const getOne = async (req: Request, res: Response): Promise<void> => {
     try{
+        if (!types.isInt(req.params.id)) {
+            res.statusMessage = "Bad Request. Invalid information!";
+            res.status(400).send();
+            return;
+        }
         const id = parseInt(req.params.id,10);
         const result = await films.getOne(id);
         // Your code goes here
@@ -96,6 +102,11 @@ const editOne = async (req: Request, res: Response): Promise<void> => {
         res.status(400).send();
         return;
     }
+    if (!types.isInt(req.params.id)) {
+        res.statusMessage = "Bad Request. Invalid information!";
+        res.status(400).send();
+        return;
+    }
     const id = parseInt(req.params.id,10);
     const token = auth.getAuthToken(req);
     if (token === "") {
@@ -143,6 +154,11 @@ const editOne = async (req: Request, res: Response): Promise<void> => {
 }
 
 const deleteOne = async (req: Request, res: Response): Promise<void> => {
+    if (!types.isInt(req.params.id)) {
+        res.statusMessage = "Bad Request. Invalid information!";
+        res.status(400).send();
+        return;
+    }
     const id: number = parseInt(req.params.id,10);
     const token = auth.getAuthToken(req);
     if (token === "") {
