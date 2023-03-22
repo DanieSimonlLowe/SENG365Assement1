@@ -2,7 +2,7 @@ import path from "path";
 
 import * as fs from "fs";
 import {Request} from "express";
-const imageDirectory = './storage/images/';
+const imageDirectory = '.'+path.sep+'storage'+path.sep+'images'+path.sep;
 
 function getImagePath (file:string) : string {
     return path.dirname(imageDirectory)+path.sep+'images'+path.sep+file
@@ -27,10 +27,11 @@ function isValidImageReq(req: Request): boolean { // TODO deal with wrong body d
         if (type !== 'image/png' && type !== 'image/jpeg' && type !== 'image/gif') {
             return false;
         }
-    } else if (!(req.is('image/png') || req.is('image/jpeg') || req.is('image/gif'))) {
-        return false;
     }
     try {
+        if (!(req.body.is('image/png') || req.body.is('image/jpeg') || req.body.is('image/gif'))) {
+            return false;
+        }
         const data = req.body as Buffer;
         if (data === null) {
             return false;
@@ -44,12 +45,17 @@ function isValidImageReq(req: Request): boolean { // TODO deal with wrong body d
 function getImageContentType(req: Request) : string {
     if (req.headers.hasOwnProperty('content-type')) {
         return req.headers['content-type'];
-    } else if (req.is('image/png') ) {
-        return "image/png";
-    } else if (req.is('image/jpeg')) {
-        return "image/jpeg";
-    } else if (req.is('image/gif')) {
-        return "image/gif";
+    }
+    try {
+        if (req.body.is('image/png')) {
+            return "image/png";
+        } else if (req.body.is('image/jpeg')) {
+            return "image/jpeg";
+        } else if (req.body.is('image/gif')) {
+            return "image/gif";
+        }
+    } catch {
+        return null;
     }
     return null;
 }
