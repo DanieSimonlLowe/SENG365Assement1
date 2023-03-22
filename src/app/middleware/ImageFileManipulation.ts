@@ -3,7 +3,6 @@ import path from "path";
 import * as fs from "fs";
 import {Request} from "express";
 const imageDirectory = '.'+path.sep+'storage'+path.sep+'images'+path.sep;
-import {fileTypeFromFile} from 'file-type';
 
 function getImagePath (file:string) : string {
     return path.dirname(imageDirectory)+path.sep+'images'+path.sep+file
@@ -40,10 +39,10 @@ const isValidImageReq = async (req: Request): Promise<boolean> => {
         if (data === null) {
             return false;
         }
-        const mime: string = (await fileTypeFromFile("type")).mime;
+        /*const mime: string = (await fileTypeFromFile("type")).mime;
         if (mime !== type) {
             return false;
-        }
+        }*/
     } catch (err) {
         return false;
     }
