@@ -26,10 +26,15 @@ const isValidImageReq = async (req: Request): Promise<boolean> => {
     if (req.headers.hasOwnProperty('content-type')) {
         type = req.headers['content-type'];
     } else if (req.headers.hasOwnProperty('Content-Type')) {
-        if (req.headers['Content-Type'].length !== 1) {
+        /*if (req.headers['Content-Type'].length !== 1) {
             return false;
+        }*/
+        for (const str of req.headers['Content-Type']) {
+            type = str;
+            if (type === 'image/png' || type === 'image/jpeg' || type === 'image/gif') {
+                break;
+            }
         }
-        type = req.headers['Content-Type'][0];
     }
     if (type !== 'image/png' && type !== 'image/jpeg' && type !== 'image/gif') {
         return false;
