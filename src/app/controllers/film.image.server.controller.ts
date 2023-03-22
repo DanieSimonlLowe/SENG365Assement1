@@ -43,7 +43,7 @@ const setImage = async (req: Request, res: Response): Promise<void> => {
         res.statusMessage = "Unauthorized";
         res.status(401).send();
     }
-    if (!files.isValidImageReq(req)) {
+    if (!await files.isValidImageReq(req)) {
         res.statusMessage = "Bad Request";
         res.status(400).send();
     }

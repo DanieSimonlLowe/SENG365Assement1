@@ -42,18 +42,14 @@ const getImage = async (req: Request, res: Response): Promise<void> => {
 
 
 const setImage = async (req: Request, res: Response): Promise<void> => {
-    if (req.body === null) {
-        res.statusMessage = "Bad Request. Invalid image supplied (possibly incorrect file type)"
-        res.status(400).send();
-        return;
-    } else if (!files.isValidImageReq(req)) {
+    if (!await files.isValidImageReq(req)) {
         res.statusMessage = "Bad Request. Invalid image supplied (possibly incorrect file type)"
         res.status(400).send();
         return;
     }
 
     if (!types.isInt(req.params.id)) {
-        res.statusMessage = "Bad Request. Invalid information!";
+        res.statusMessage = "Bad Request. Invalid image supplied (possibly incorrect file type)";
         res.status(400).send();
         return;
     }

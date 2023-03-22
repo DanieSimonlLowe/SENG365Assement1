@@ -3,6 +3,7 @@ import path from "path";
 import * as fs from "fs";
 import {Request} from "express";
 const imageDirectory = '.'+path.sep+'storage'+path.sep+'images'+path.sep;
+import {fileTypeFromFile} from 'file-type';
 
 function getImagePath (file:string) : string {
     return path.dirname(imageDirectory)+path.sep+'images'+path.sep+file
@@ -21,19 +22,26 @@ const deleteFile = async (fileName: string) : Promise<void> => {
     await fs.promises.unlink(getImagePath(fileName));
 }
 
-function isValidImageReq(req: Request): boolean { // TODO deal with wrong body data formats.
+const isValidImageReq = async (req: Request): Promise<boolean> => {
+    let type:string = null
     if (req.headers.hasOwnProperty('content-type')) {
-        const type: string = req.headers['content-type'];
-        if (type !== 'image/png' && type !== 'image/jpeg' && type !== 'image/gif') {
+        type = req.headers['content-type'];
+    } else if (req.headers.hasOwnProperty('Content-Type')) {
+        if (req.headers['Content-Type'].length !== 1) {
             return false;
         }
+        type = req.headers['Content-Type'][0];
+    }
+    if (type !== 'image/png' && type !== 'image/jpeg' && type !== 'image/gif') {
+        return false;
     }
     try {
-        if (!(req.body.is('image/png') || req.body.is('image/jpeg') || req.body.is('image/gif'))) {
-            return false;
-        }
         const data = req.body as Buffer;
         if (data === null) {
+            return false;
+        }
+        const mime: string = (await fileTypeFromFile("type")).mime;
+        if (mime !== type) {
             return false;
         }
     } catch (err) {
@@ -45,17 +53,11 @@ function isValidImageReq(req: Request): boolean { // TODO deal with wrong body d
 function getImageContentType(req: Request) : string {
     if (req.headers.hasOwnProperty('content-type')) {
         return req.headers['content-type'];
-    }
-    try {
-        if (req.body.is('image/png')) {
-            return "image/png";
-        } else if (req.body.is('image/jpeg')) {
-            return "image/jpeg";
-        } else if (req.body.is('image/gif')) {
-            return "image/gif";
+    } else if (req.headers.hasOwnProperty('Content-Type')) {
+        if (req.headers['Content-Type'].length !== 1) {
+            return null;
         }
-    } catch {
-        return null;
+        return req.headers['Content-Type'][0];
     }
     return null;
 }
