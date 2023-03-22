@@ -25,15 +25,11 @@ const isValidImageReq = async (req: Request): Promise<boolean> => {
     let type:string = null
     if (req.headers.hasOwnProperty('content-type')) {
         type = req.headers['content-type'];
-    } else if (req.headers.hasOwnProperty('Content-Type')) {
-        /*if (req.headers['Content-Type'].length !== 1) {
-            return false;
-        }*/
-        for (const str of req.headers['Content-Type']) {
-            type = str;
-            if (type === 'image/png' || type === 'image/jpeg' || type === 'image/gif') {
-                break;
-            }
+    } else {
+        try {
+            type = req.header('Content-Type');
+        } catch (err) {
+            return false
         }
     }
     if (type !== 'image/png' && type !== 'image/jpeg' && type !== 'image/gif') {
@@ -57,13 +53,12 @@ const isValidImageReq = async (req: Request): Promise<boolean> => {
 function getImageContentType(req: Request) : string {
     if (req.headers.hasOwnProperty('content-type')) {
         return req.headers['content-type'];
-    } else if (req.headers.hasOwnProperty('Content-Type')) {
-        if (req.headers['Content-Type'].length !== 1) {
-            return null;
-        }
-        return req.headers['Content-Type'][0];
     }
-    return null;
+    try {
+        return req.header('Content-Type');
+    } catch (err) {
+        return null;
+    }
 }
 
 function sameExtension(type: string, fileName: string): boolean {
