@@ -56,7 +56,21 @@ const addReview = async (req: Request, res: Response): Promise<void> => {
             res.status(401).send();
             return;
         }
-        const result: number = await reviews.add(id,uId,req.body.rating,req.body.review);
+        if (!types.isInt(req.body.rating)) {
+            res.statusMessage = "Bad Request. Invalid information";
+            res.status(400).send();
+            return;
+        }
+        let review = null;
+        if (req.body.hasOwnProperty("review")) {
+            if (!types.isString(req.body.review)) {
+                res.statusMessage = "Bad Request. Invalid information";
+                res.status(400).send();
+                return;
+            }
+            review = req.body.review;
+        }
+        const result: number = await reviews.add(id,uId,req.body.rating,review);
         if (result === 403) {
             res.statusMessage = "Forbidden. Cannot review your own film, or cannot post a review on a film that has not yet released";
             res.status(403).send();

@@ -8,7 +8,7 @@ export default async (email: string): Promise<boolean> => {
             lastDot = i;
         }
     }
-    if (lastAt === -1 || lastDot === -1) {
+    if (lastAt < 1 || lastDot === -1 || lastDot >= email.length-1) {
         return false;
     } else {
         return lastAt + 1 < lastDot;

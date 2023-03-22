@@ -35,12 +35,15 @@ const search = async (params: any) : Promise<any> => {
 
     let where: string = "";
 
+    const values = [];
     if (params.hasOwnProperty("q")) {
         const q : string = params.q;
         if (!types.isString(q)) {
             return 400;
         }
-        where += '(title LIKE \'%' + q + '%\' OR description LIKE \'%' + q + '%\') AND ';
+        where += '(title LIKE ? OR description LIKE ?) AND ';
+        values.push('%'+q+'%');
+        values.push('%'+q+'%');
     }
     if (params.hasOwnProperty("genreIds")) {
         if (!Array.isArray(params.genreIds)) {
@@ -56,7 +59,8 @@ const search = async (params: any) : Promise<any> => {
                 if (!await isGenre(params.genreIds[i])) {
                     return 400;
                 }
-                where += 'genre_id = ' + params.genreIds[i] + ' OR '
+                where += 'genre_id = ? OR '
+                values.push(params.genreIds[i])
             }
             where = where.substring(0,where.length-3) + ') AND '
         }
@@ -76,7 +80,8 @@ const search = async (params: any) : Promise<any> => {
                 if (isInvalidAgeRating(ageRating)) {
                     return 400;
                 }
-                where += 'age_rating = \'' + ageRating + '\' OR '
+                where += 'age_rating = ? OR '
+                values.push(ageRating)
             }
             where = where.substring(0,where.length-3) + ') AND '
         }
@@ -88,7 +93,8 @@ const search = async (params: any) : Promise<any> => {
         if (! await isUser(params.directorId)) {
             return 400;
         }
-        where += 'director_id = '+ params.directorId +' AND ';
+        where += 'director_id = ? AND ';
+        values.push(params.directorId);
     }
     if (params.hasOwnProperty("reviewerId")) {
         if (!types.isInt(params.reviewerId)) {
@@ -97,7 +103,8 @@ const search = async (params: any) : Promise<any> => {
         if (! await isUser(params.reviewerId)) {
             return 400;
         }
-        where += 'id IN (SELECT film_id FROM `film_review` WHERE user_id = ' + params.reviewerId + ') AND ';
+        where += 'id IN (SELECT film_id FROM `film_review` WHERE user_id = ?) AND ';
+        values.push(params.reviewerId);
     }
     if (where !== "") {
         where = where.substring(0,where.length-4);
@@ -127,7 +134,7 @@ const search = async (params: any) : Promise<any> => {
     query += ', f.id ASC'
 
     const conn = await getPool().getConnection();
-    const [result] = await conn.query( query, []);
+    const [result] = await conn.query( query, values);
 
     let startIndex = 0;
     if (params.hasOwnProperty("startIndex")) {
@@ -337,6 +344,16 @@ const update = async (body: any, dirId: number, id: number) : Promise<number> =>
         if (!types.isString(body.title)) {
             return 400;
         }
+
+        // tslint:disable-next-line:no-shadowed-variable
+        const conn2 = await getPool().getConnection();
+        // tslint:disable-next-line:no-shadowed-variable
+        const [test2] = await conn2.query( 'SELECT * FROM film WHERE title = ?', [body.title]);
+        await conn2.release();
+        if (test2.length > 0) {
+            return 403;
+        }
+
         query += 'title = ? ,';
         values.push(body.title);
         setsValue = true;

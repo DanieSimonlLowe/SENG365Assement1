@@ -6,7 +6,11 @@ function isInt(value: any): boolean {
     if (isEmpty(value)) {
         return false;
     }
-    return Number.isInteger(parseFloat(value));
+    try {
+        return !isNaN(parseInt(value,10));
+    } catch (err) {
+        return false;
+    }
 }
 
 function isString(value: any): boolean {

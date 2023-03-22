@@ -6,8 +6,6 @@ import * as types from "../middleware/typeValidation"
 import * as auth from "../middleware/user.auth.middleware"
 
 const make = async (req: Request): Promise<any> => {
-
-
     const passwordHash : string = await auth.generatePasswordHash(req.body.password);
     const email : string = req.body.email;
     const firstName : string = req.body.firstName;
@@ -134,6 +132,17 @@ const update = async (req: Request) : Promise<number> => {
         return 400;
     }
     const id = parseInt(req.params.id,10);
+
+    if (!req.body.hasOwnProperty("currentPassword")) {
+        return 401;
+    } else if (!types.isString( req.body.currentPassword)) {
+        return 401;
+    } else if (req.body.currentPassword.length < 6) {
+        return 401;
+    } else if (!await rightPassword(id,req.body.currentPassword)) {
+        return 403;
+    }
+
     const query = 'SELECT auth_token FROM user WHERE id = ?';
     const conn = await getPool().getConnection();
     const [result] = await conn.query( query, [id]);
@@ -170,6 +179,12 @@ const update = async (req: Request) : Promise<number> => {
         if (req.body.hasOwnProperty("password")) {
             if (!types.isString(req.body.password)) {
                 return 400;
+            }
+            if (req.body.password.length  < 6) {
+                return 400;
+            }
+            if (req.body.password === req.body.currentPassword) {
+                return 403;
             }
             query2 += 'password = ?,'
             const password = await auth.generatePasswordHash(req.body.password);
