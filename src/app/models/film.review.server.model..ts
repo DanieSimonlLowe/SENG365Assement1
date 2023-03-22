@@ -14,6 +14,7 @@ const get = async (film: number): Promise<any> => {
     await conn2.release();
 
     const list: any[] = [];
+    // tslint:disable-next-line:prefer-for-of
     for (let i = 0; i < result.length; i++) {
         const review = result[i];
         list.push({

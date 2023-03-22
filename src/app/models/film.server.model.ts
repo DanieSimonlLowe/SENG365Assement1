@@ -5,6 +5,7 @@ import * as types from "../middleware/typeValidation"
 const validAgeRatings = ['G','PG','M','R16','R18','TBC'];
 
 function isInvalidAgeRating(rating:string): boolean {
+    // tslint:disable-next-line:prefer-for-of
     for (let i = 0; i<validAgeRatings.length; i++) {
         if (rating === validAgeRatings[i]) {
             return false;
