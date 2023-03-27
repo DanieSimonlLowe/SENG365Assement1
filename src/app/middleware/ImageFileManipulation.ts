@@ -36,14 +36,15 @@ const isValidImageReq = async (req: Request): Promise<boolean> => {
         return false;
     }
     try {
+        if (req.body.hasOwnProperty("mimeType")) {
+            if (req.body.mimeType !== type) {
+                return false;
+            }
+        }
         const data = req.body as Buffer;
         if (data === null) {
             return false;
         }
-        /*const mime: string = (await fileTypeFromFile("type")).mime;
-        if (mime !== type) {
-            return false;
-        }*/
     } catch (err) {
         return false;
     }
@@ -62,7 +63,11 @@ function getImageContentType(req: Request) : string {
 }
 
 function sameExtension(type: string, fileName: string): boolean {
-    const extension = (fileName).split('.')[1];
+    const splitFile = (fileName).split('.')[1];
+    if (splitFile.length !== 2) {
+        return false;
+    }
+    const extension = splitFile[1];
     if (extension === "png" && type === "image/png") {
         return true;
     } else if ((extension === "jpeg" || extension === "jpg") && type === "image/jpeg") {
