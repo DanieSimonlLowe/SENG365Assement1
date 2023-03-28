@@ -1,4 +1,7 @@
 export default async (email: string): Promise<boolean> => {
+    if (email.length > 256) {
+        return false;
+    }
     let lastAt: number = -1;
     let lastDot: number = -1;
     for (let i = 0; i < email.length; i++) {

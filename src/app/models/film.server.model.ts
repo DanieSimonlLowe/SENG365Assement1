@@ -252,8 +252,11 @@ const add = async (body: any, dirId: number) : Promise<any> => {
     const now: Date = new Date();
     let releaseDate: Date = now;
     if (body.hasOwnProperty('releaseDate')) {
+        if (!types.isDate(body.releaseDate)) {
+            return 400;
+        }
         releaseDate = types.parseDate(body.releaseDate);
-        if (!types.isDate(releaseDate)) {
+        if(isNaN(releaseDate.getTime())) {
             return 400;
         }
         if (releaseDate < now) {
@@ -315,9 +318,11 @@ const update = async (body: any, dirId: number, id: number) : Promise<number> =>
         if (test[0].release_date < now) {
             return 403;
         }
-
+        if (!types.isDate(body.releaseDate)) {
+            return 400;
+        }
         const releaseDate = types.parseDate(body.releaseDate);
-        if (!types.isDate(releaseDate)) {
+        if (isNaN(releaseDate.getTime())) {
             return 400;
         }
         if (releaseDate < now) {

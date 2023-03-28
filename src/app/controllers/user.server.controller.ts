@@ -13,6 +13,11 @@ const register = async (req: Request, res: Response): Promise<void> => {
         res.status(400).send();
         return;
     }
+    if (!types.isPassword(req.body.password)) {
+        res.statusMessage = "Bad Request. Invalid information!";
+        res.status(400).send();
+        return;
+    }
 
     try{
         if (await user.emailInUse(req.body.email)) {
@@ -38,6 +43,11 @@ const login = async (req: Request, res: Response): Promise<void> => {
     const isValid = await validator(schemas.user_login,req.body);
     if (isValid !== true) {
         res.statusMessage = "Bad Request. Invalid information";
+        res.status(400).send();
+        return;
+    }
+    if (!types.isPassword(req.body.password)) {
+        res.statusMessage = "Bad Request. Invalid information!";
         res.status(400).send();
         return;
     }
@@ -133,6 +143,11 @@ const update = async (req: Request, res: Response): Promise<void> => {
     }
 
     if (req.body.hasOwnProperty("password")) {
+        if (!types.isPassword(req.body.password)) {
+            res.statusMessage = "Bad Request. Invalid information!";
+            res.status(400).send();
+            return;
+        }
         if (!req.body.hasOwnProperty("currentPassword")) {
             res.statusMessage = "Forbidden. This is not your account, or the email is already in use, or identical current and new passwords";
             res.status(403).send();
@@ -141,6 +156,11 @@ const update = async (req: Request, res: Response): Promise<void> => {
         if (req.body.currentPassword === req.body.password) {
             res.statusMessage = "Forbidden. This is not your account, or the email is already in use, or identical current and new passwords";
             res.status(403).send();
+            return;
+        }
+        if (!types.isPassword(req.body.currentPassword)) {
+            res.statusMessage = "Bad Request. Invalid information!";
+            res.status(400).send();
             return;
         }
     }
