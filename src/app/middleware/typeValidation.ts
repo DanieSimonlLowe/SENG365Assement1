@@ -8,6 +8,13 @@ function isInt(value: any): boolean {
     }
 
     try {
+        const float = parseFloat(value);
+        if (isNaN(float)) {
+            return false;
+        } else if (!Number.isInteger(float)) {
+            return false;
+        }
+
         const num = parseInt(value,10);
         if (isNaN(num)) {
             return false;
@@ -58,7 +65,7 @@ function isPassword(value: any): boolean {
     if (!isString(value)) {
         return false;
     }
-    return !(value.length < 6 || value > 64);
+    return true
 }
 
 export {isInt, isString, isFloat, isDate, parseDate,isPassword}
