@@ -7,13 +7,13 @@ import * as schemas from "../resources/schemas.json";
 import * as types from "../middleware/typeValidation";
 
 const getReviews = async (req: Request, res: Response): Promise<void> => {
-    if (!types.isInt(req.params.id)) {
-        res.statusMessage = "Bad Request. Invalid information!";
-        res.status(400).send();
-        return;
-    }
-    const id: number = parseInt(req.params.id,10);
     try{
+        if (!types.isInt(req.params.id)) {
+            res.statusMessage = "Bad Request. Invalid information!";
+            res.status(400).send();
+            return;
+        }
+        const id: number = parseInt(req.params.id,10);
         const result = await reviews.get(id);
         // Your code goes here
         if (result === null) {
@@ -22,7 +22,7 @@ const getReviews = async (req: Request, res: Response): Promise<void> => {
             return;
         } else {
             res.statusMessage = "OK";
-            res.status(200).send(result);
+            res.status(200).json(result);
             return;
         }
 
@@ -36,20 +36,20 @@ const getReviews = async (req: Request, res: Response): Promise<void> => {
 
 
 const addReview = async (req: Request, res: Response): Promise<void> => {
-    const isValid = await validator(schemas.film_review_post,req.body);
-    if (isValid !== true) {
-        res.statusMessage = "Bad Request. Invalid information!";
-        res.status(400).send();
-        return;
-    }
-    const id: number = parseInt(req.params.id,10);
-    const token = auth.getAuthToken(req);
-    if (token === "") {
-        res.statusMessage = "Unauthorized";
-        res.status(401).send();
-        return;
-    }
     try{
+        const isValid = await validator(schemas.film_review_post,req.body);
+        if (isValid !== true) {
+            res.statusMessage = "Bad Request. Invalid information!";
+            res.status(400).send();
+            return;
+        }
+        const id: number = parseInt(req.params.id,10);
+        const token = auth.getAuthToken(req);
+        if (token === "") {
+            res.statusMessage = "Unauthorized";
+            res.status(401).send();
+            return;
+        }
         const uId = await auth.getUserId(auth.getAuthToken(req));
         if (uId === null) {
             res.statusMessage = "Unauthorized";

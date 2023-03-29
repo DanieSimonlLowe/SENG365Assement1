@@ -6,13 +6,13 @@ import * as files from "../middleware/ImageFileManipulation"
 import * as types from "../middleware/typeValidation";
 
 const getImage = async (req: Request, res: Response): Promise<void> => {
-    if (!types.isInt(req.params.id)) {
-        res.statusMessage = "Bad Request. Invalid information!";
-        res.status(400).send();
-        return;
-    }
-    const id = parseInt(req.params.id,10);
     try{
+        if (!types.isInt(req.params.id)) {
+            res.statusMessage = "Bad Request. Invalid information!";
+            res.status(400).send();
+            return;
+        }
+        const id = parseInt(req.params.id,10);
         const result = await user.get(id);
         if (result === null) {
             res.statusMessage = "Not Found. No user with specified ID, or user has no image";
@@ -42,25 +42,25 @@ const getImage = async (req: Request, res: Response): Promise<void> => {
 
 
 const setImage = async (req: Request, res: Response): Promise<void> => {
-    if (!await files.isValidImageReq(req)) {
-        res.statusMessage = "Bad Request. Invalid image supplied (possibly incorrect file type)"
-        res.status(400).send();
-        return;
-    }
-
-    if (!types.isInt(req.params.id)) {
-        res.statusMessage = "Bad Request. Invalid image supplied (possibly incorrect file type)";
-        res.status(400).send();
-        return;
-    }
-    const id = parseInt(req.params.id,10);
-    const token = getAuthToken(req);
-    if (token === "") {
-        res.statusMessage = "Unauthorized"
-        res.status(401).send();
-        return;
-    }
     try{
+        if (!await files.isValidImageReq(req)) {
+            res.statusMessage = "Bad Request. Invalid image supplied (possibly incorrect file type)"
+            res.status(400).send();
+            return;
+        }
+
+        if (!types.isInt(req.params.id)) {
+            res.statusMessage = "Bad Request. Invalid image supplied (possibly incorrect file type)";
+            res.status(400).send();
+            return;
+        }
+        const id = parseInt(req.params.id,10);
+        const token = getAuthToken(req);
+        if (token === "") {
+            res.statusMessage = "Unauthorized"
+            res.status(401).send();
+            return;
+        }
         const data = req.body as Buffer;
         // Your code goes here
         const result: number = await user.set(id,token,data,files.getImageContentType(req));

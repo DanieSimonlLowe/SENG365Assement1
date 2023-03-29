@@ -7,13 +7,13 @@ import * as auth from "../middleware/user.auth.middleware";
 import * as types from "../middleware/typeValidation";
 
 const viewAll = async (req: Request, res: Response): Promise<void> => {
-    const isValid = await validator(schemas.film_search,req.query);
-    if (isValid !== true) {
-        res.statusMessage = "Bad Request. Invalid information!";
-        res.status(400).send();
-        return;
-    }
     try{
+        const isValid = await validator(schemas.film_search,req.query);
+        if (isValid !== true) {
+            res.statusMessage = "Bad Request. Invalid information!";
+            res.status(400).send();
+            return;
+        }
         // Your code goes here
         const result = await films.search(req.query);
         if (result === 400) {
@@ -23,7 +23,7 @@ const viewAll = async (req: Request, res: Response): Promise<void> => {
         }
 
         res.statusMessage = "OK";
-        res.status(200).send(result);
+        res.status(200).json(result);
         return;
     } catch (err) {
         Logger.error(err);
@@ -48,7 +48,7 @@ const getOne = async (req: Request, res: Response): Promise<void> => {
             res.status(404).send();
         } else {
             res.statusMessage = "OK"
-            res.status(200).send(result);
+            res.status(200).json(result);
         }
     } catch (err) {
         Logger.error(err);
@@ -59,14 +59,14 @@ const getOne = async (req: Request, res: Response): Promise<void> => {
 }
 
 const addOne = async (req: Request, res: Response): Promise<void> => {
-    const isValid = await validator(schemas.film_post,req.body);
-    if (isValid !== true) {
-        res.statusMessage = "Bad Request. Invalid information!";
-        res.status(400).send();
-        return;
-    }
 
     try{
+        const isValid = await validator(schemas.film_post,req.body);
+        if (isValid !== true) {
+            res.statusMessage = "Bad Request. Invalid information!";
+            res.status(400).send();
+            return;
+        }
         const dirId = await auth.getUserId(auth.getAuthToken(req));
         if (dirId === null) {
             res.statusMessage = "Unauthorized";
@@ -85,7 +85,7 @@ const addOne = async (req: Request, res: Response): Promise<void> => {
             return;
         }
         res.statusMessage = "Created";
-        res.status(201).send(result);
+        res.status(201).json(result);
         return;
     } catch (err) {
         Logger.error(err);
@@ -96,26 +96,25 @@ const addOne = async (req: Request, res: Response): Promise<void> => {
 }
 
 const editOne = async (req: Request, res: Response): Promise<void> => {
-    const isValid = await validator(schemas.film_patch,req.body);
-    if (isValid !== true) {
-        res.statusMessage = "Bad Request. Invalid information!";
-        res.status(400).send();
-        return;
-    }
-    if (!types.isInt(req.params.id)) {
-        res.statusMessage = "Bad Request. Invalid information!";
-        res.status(400).send();
-        return;
-    }
-    const id = parseInt(req.params.id,10);
-    const token = auth.getAuthToken(req);
-    if (token === "") {
-        res.statusMessage = "Unauthorized";
-        res.status(401).send();
-        return;
-    }
-
     try{
+        const isValid = await validator(schemas.film_patch,req.body);
+        if (isValid !== true) {
+            res.statusMessage = "Bad Request. Invalid information!";
+            res.status(400).send();
+            return;
+        }
+        if (!types.isInt(req.params.id)) {
+            res.statusMessage = "Bad Request. Invalid information!";
+            res.status(400).send();
+            return;
+        }
+        const id = parseInt(req.params.id,10);
+        const token = auth.getAuthToken(req);
+        if (token === "") {
+            res.statusMessage = "Unauthorized";
+            res.status(401).send();
+            return;
+        }
         const dirId = await auth.getUserId(token);
         if (dirId === null) {
             res.statusMessage = "Unauthorized";
@@ -154,19 +153,19 @@ const editOne = async (req: Request, res: Response): Promise<void> => {
 }
 
 const deleteOne = async (req: Request, res: Response): Promise<void> => {
-    if (!types.isInt(req.params.id)) {
-        res.statusMessage = "Bad Request. Invalid information!";
-        res.status(400).send();
-        return;
-    }
-    const id: number = parseInt(req.params.id,10);
-    const token = auth.getAuthToken(req);
-    if (token === "") {
-        res.statusMessage = "Unauthorized";
-        res.status(401).send();
-        return;
-    }
     try{
+        if (!types.isInt(req.params.id)) {
+            res.statusMessage = "Bad Request. Invalid information!";
+            res.status(400).send();
+            return;
+        }
+        const id: number = parseInt(req.params.id,10);
+        const token = auth.getAuthToken(req);
+        if (token === "") {
+            res.statusMessage = "Unauthorized";
+            res.status(401).send();
+            return;
+        }
         const result : number = await films.remove(id,await auth.getUserId(token));
         if (result === 403) {
             res.statusMessage = "Forbidden. Only the director of an film can delete it";
@@ -192,7 +191,7 @@ const getGenres = async (req: Request, res: Response): Promise<void> => {
     try{
         const result: any[] = await films.getGenres();
         res.statusMessage = "OK";
-        res.status(200).send(result);
+        res.status(200).json(result);
         return;
     } catch (err) {
         Logger.error(err);
